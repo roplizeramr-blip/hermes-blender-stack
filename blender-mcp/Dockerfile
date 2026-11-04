@@ -72,6 +72,11 @@ COPY mcp_server.py blender_bridge.py entrypoint.sh /app/
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY index.html /usr/share/nginx/html/index.html
 
+# Fail the build instead of the container when the Python sources do not
+# compile on the image interpreter (Debian bookworm ships Python 3.11).
+RUN /opt/venv/bin/python -m py_compile /app/mcp_server.py /app/blender_bridge.py && \
+    echo "python sources compile cleanly"
+
 RUN set -eux; \
     chmod +x /app/entrypoint.sh; \
     rm -f /etc/nginx/sites-enabled/default; \

@@ -56,7 +56,7 @@ dump_blender_log() {
 
 start_blender() {
   log "starting headless Blender (bridge 127.0.0.1:${BRIDGE_PORT})"
-  /opt/blender/blender -b --factory-startup --noaudio --python /app/blender_bridge.py \
+  /opt/blender/blender -b --factory-startup -noaudio --python /app/blender_bridge.py \
       >>"$BLENDER_LOG" 2>&1 &
   BLENDER_PID=$!
   sleep 3

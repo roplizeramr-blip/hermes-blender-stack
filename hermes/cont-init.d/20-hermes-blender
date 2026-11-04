@@ -4,20 +4,29 @@
 # Runs as PID-1 init's one-shot cont-init script (after the image's own
 # 01-hermes-setup, which seeds config.yaml/.env and syncs bundled skills).
 #
-# 1. Seeds the 10 Blender skills into $HERMES_HOME/skills/blender/.
-# 2. Registers the Blender MCP server in $HERMES_HOME/config.yaml and seeds
+# 1. Makes $HERMES_HOME/skills writable by the hermes user (on a fresh volume
+#    the bundled-skill sync can otherwise fail with EACCES).
+# 2. Seeds the 10 Blender skills into $HERMES_HOME/skills/blender/.
+# 3. Re-runs Hermes' bundled-skill sync so the agent's own 44 skills and our
+#    10 Blender skills are both installed.
+# 4. Registers the Blender MCP server in $HERMES_HOME/config.yaml and seeds
 #    the LLM provider/model selection.
 #
 # Everything here is idempotent: it can run on every container start.
 set -eu
 
 HERMES_HOME="${HERMES_HOME:-/opt/data}"
-SKILLS_SRC="${HERMES_BLENDER_SKILLS_DIR:-/opt/hermes-blender/skills}"
+SKILLS_SRC="${HERMES_BLENDER_SKILLS_DIR:-/opt/hermes-blender/skills/blender}"
 PY="${HERMES_PYTHON:-/opt/hermes/.venv/bin/python}"
 
 echo "[hermes-blender] HERMES_HOME=${HERMES_HOME}"
 
-# --- 1. Blender skills ------------------------------------------------------
+# --- 1. skills directory ownership -----------------------------------------
+mkdir -p "$HERMES_HOME/skills" 2>/dev/null || true
+chown -R hermes:hermes "$HERMES_HOME/skills" 2>/dev/null || true
+chmod 0755 "$HERMES_HOME" "$HERMES_HOME/skills" 2>/dev/null || true
+
+# --- 2. Blender skills ------------------------------------------------------
 if [ -d "$SKILLS_SRC" ]; then
   mkdir -p "$HERMES_HOME/skills/blender"
   for dir in "$SKILLS_SRC"/*/; do
@@ -25,6 +34,7 @@ if [ -d "$SKILLS_SRC" ]; then
     name="$(basename "$dir")"
     target="$HERMES_HOME/skills/blender/$name"
     if [ ! -f "$target/SKILL.md" ]; then
+      rm -rf "$target" 2>/dev/null || true
       cp -r "$dir" "$target"
       echo "[hermes-blender] seeded skill: $name"
     fi
@@ -34,7 +44,18 @@ else
   echo "[hermes-blender] WARNING: skills source not found at $SKILLS_SRC"
 fi
 
-# --- 2. MCP server + model provider ----------------------------------------
+# --- 3. bundled skills sync (agent skills + our Blender skills) --------------
+if [ -x /command/s6-setuidgid ] && [ -f /opt/hermes/tools/skills_sync.py ]; then
+  if /command/s6-setuidgid hermes "$PY" /opt/hermes/tools/skills_sync.py; then
+    echo "[hermes-blender] bundled skills synced"
+  else
+    echo "[hermes-blender] WARNING: bundled skills sync reported an error"
+  fi
+else
+  echo "[hermes-blender] WARNING: s6-setuidgid or skills_sync.py not found"
+fi
+
+# --- 4. MCP server + model provider ----------------------------------------
 if [ -x "$PY" ] && [ -f /opt/hermes-blender/configure_blender.py ]; then
   if "$PY" /opt/hermes-blender/configure_blender.py; then
     echo "[hermes-blender] configuration applied"

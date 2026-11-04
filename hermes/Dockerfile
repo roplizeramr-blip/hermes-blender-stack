@@ -30,10 +30,15 @@ ENV PYTHONUNBUFFERED=1 \
     HERMES_DASHBOARD_BASIC_AUTH_USERNAME=admin \
     API_SERVER_ENABLED=true \
     API_SERVER_HOST=0.0.0.0 \
-    HERMES_BLENDER_SKILLS_DIR=/opt/hermes-blender/skills
+    HERMES_BLENDER_SKILLS_DIR=/opt/hermes-blender/skills/blender
 
-# Blender skills (10) + the boot configuration helper.
-COPY skills/ /opt/hermes-blender/skills/
+# The 10 Blender skills are ALSO baked into the image's bundled-skills tree
+# (/opt/hermes/skills/<category>/<name>/SKILL.md) so Hermes' own bundled-skill
+# sync installs them into $HERMES_HOME/skills/blender/<name>/ — exactly like the
+# 44 skills that ship with the agent. The second copy under
+# /opt/hermes-blender/skills is the fallback the boot hook seeds by hand.
+COPY skills/blender/ /opt/hermes/skills/blender/
+COPY skills/blender/ /opt/hermes-blender/skills/blender/
 COPY hermes/scripts/configure_blender.py /opt/hermes-blender/configure_blender.py
 
 # s6-overlay runs /etc/cont-init.d/* before the supervised services start.
@@ -41,8 +46,10 @@ COPY hermes/scripts/configure_blender.py /opt/hermes-blender/configure_blender.p
 COPY --chmod=0755 hermes/cont-init.d/20-hermes-blender /etc/cont-init.d/20-hermes-blender
 
 RUN chmod 0755 /opt/hermes-blender/configure_blender.py && \
+    /opt/hermes/.venv/bin/python -m py_compile /opt/hermes-blender/configure_blender.py && \
     mkdir -p /opt/data/skills/blender && \
-    ls -1 /opt/hermes-blender/skills
+    ls -1 /opt/hermes/skills/blender && \
+    ls -1 /opt/hermes-blender/skills/blender
 
 EXPOSE 9119 8642
 

@@ -537,6 +537,13 @@ def create_material(name: str, color: str = "#b0b0b0", metallic: float = 0.0,
     Optionally assign to an object via assign_to."""
     rgba = _hex_to_rgba(color)
     emis = _hex_to_rgba(emission_color) if emission_color else None
+    # NOTE: keep the f-string expressions free of backslashes — the MCP server
+    # runs on Python 3.11 (Debian bookworm), where PEP 701 (backslashes inside
+    # f-string expressions) is a SyntaxError.
+    assign_block = ""
+    if assign_to:
+        assign_block = (f"o = bpy.data.objects.get({_py(assign_to)})"
+                        "\nif o and hasattr(o.data, 'materials'): o.data.materials.append(m)")
     code = f"""
 import bpy
 m = bpy.data.materials.get({_py(name)}) or bpy.data.materials.new({_py(name)})
@@ -555,7 +562,7 @@ set_in(['IOR'], {float(ior)})
 set_in(['Transmission Weight', 'Transmission'], {float(transmission)})
 {f"set_in(['Emission Color', 'Emission'], {_py(emis)})" if emis else ""}
 {f"set_in(['Emission Strength'], {float(emission_strength)})" if emission_strength else ""}
-{f"o = bpy.data.objects.get({_py(assign_to)})\nif o and hasattr(o.data, 'materials'): o.data.materials.append(m)" if assign_to else ""}
+{assign_block}
 _result = {{'material': m.name, 'assigned_to': {_py(assign_to) if assign_to else None}}}
 """
     return _ok(_run_bpy(code))
