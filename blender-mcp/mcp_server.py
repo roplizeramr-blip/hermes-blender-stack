@@ -602,7 +602,15 @@ for m in bpy.data.materials:
         for n in m.node_tree.nodes:
             if n.type == 'BSDF_PRINCIPLED':
                 def inp(k):
-                    return list(n.inputs[k].default_value) if k in n.inputs else None
+                    if k not in n.inputs:
+                        return None
+                    v = n.inputs[k].default_value
+                    # Color inputs are vectors, scalar inputs (Metallic, Roughness,
+                    # IOR) are plain floats - list() would raise on those.
+                    try:
+                        return list(v)
+                    except TypeError:
+                        return v
                 entry.update({'base_color': inp('Base Color'), 'metallic': inp('Metallic'),
                               'roughness': inp('Roughness'), 'ior': inp('IOR')})
     out.append(entry)
