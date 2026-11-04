@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Blender MCP · Debian 12 (bookworm)</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; padding: 40px 20px;
+    font: 15px/1.6 ui-sans-serif, system-ui, "Segoe UI", Tahoma, sans-serif;
+    background: radial-gradient(1200px 600px at 50% -10%, #2a3550 0%, #12151c 60%, #0b0d12 100%);
+    color: #e8ecf4; display: flex; align-items: flex-start; justify-content: center;
+  }
+  .wrap { width: 100%; max-width: 860px; }
+  header { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; }
+  .logo {
+    width: 48px; height: 48px; border-radius: 12px; flex: 0 0 auto;
+    background: linear-gradient(140deg, #ff8a3d, #e2560e);
+    display: grid; place-items: center; font-weight: 800; font-size: 22px; color: #1a1005;
+  }
+  h1 { font-size: 26px; margin: 0; letter-spacing: -.3px; }
+  .sub { color: #9aa6bd; font-size: 13px; margin: 2px 0 0; }
+  .card {
+    background: #161a23cc; border: 1px solid #2a3140; border-radius: 14px;
+    padding: 18px 20px; margin-top: 20px; backdrop-filter: blur(4px);
+  }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .pill {
+    font-size: 12px; padding: 4px 10px; border-radius: 999px;
+    border: 1px solid #2f3a4d; background: #1e2430; color: #b9c4d8;
+  }
+  .pill.ok { border-color: #1f7a48; background: #12291d; color: #66e2a0; }
+  .pill.bad { border-color: #7a1f2b; background: #291216; color: #ff8a99; }
+  code, pre { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; }
+  code { background: #0e1117; border: 1px solid #262e3c; padding: 2px 6px; border-radius: 6px; font-size: 13px; }
+  pre { background: #0e1117; border: 1px solid #262e3c; border-radius: 10px; padding: 14px; overflow: auto; font-size: 12.5px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #232b39; vertical-align: top; }
+  th { color: #94a2ba; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+  td code { font-size: 12.5px; }
+  .muted { color: #8695ad; font-size: 13px; }
+  a { color: #8fb8ff; }
+  footer { margin-top: 18px; color: #6d7b92; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">B</div>
+    <div>
+      <h1>Blender MCP</h1>
+      <p class="sub">Headless Blender 4.5 LTS over the Model Context Protocol · served by nginx</p>
+    </div>
+  </header>
+
+  <div class="card">
+    <div class="row">
+      <span class="pill">Debian 12 · bookworm</span>
+      <span class="pill">Blender 4.5.15 LTS (x64, headless)</span>
+      <span class="pill">nginx → uvicorn → bpy bridge</span>
+      <span class="pill" id="live">checking…</span>
+    </div>
+    <p class="muted" style="margin:14px 0 0">
+      MCP endpoint <code id="mcp">/mcp</code> · health <a href="/health">/health</a>
+    </p>
+  </div>
+
+  <div class="card">
+    <h2 style="font-size:15px;margin:0 0 10px">Connect a client</h2>
+    <pre id="snippet">{
+  "mcpServers": {
+    "blender": {
+      "type": "http",
+      "url": "https://HOST/mcp",
+      "headers": { "Authorization": "Bearer &lt;BLENDER_MCP_TOKEN&gt;" }
+    }
+  }
+}</pre>
+    <p class="muted">Claude Code / Cursor / any MCP client that speaks “streamable HTTP”.<br>
+    The token is the value of the <code>BLENDER_MCP_TOKEN</code> environment variable on this app.</p>
+  </div>
+
+  <div class="card">
+    <h2 style="font-size:15px;margin:0 0 10px">Surface</h2>
+    <table>
+      <tr><th>Path</th><th>Auth</th><th>What it does</th></tr>
+      <tr><td><code>/</code></td><td>open</td><td>this page</td></tr>
+      <tr><td><code>/health</code></td><td>open</td><td>liveness of the MCP server</td></tr>
+      <tr><td><code>/mcp</code></td><td>Bearer</td><td>MCP streamable-HTTP endpoint, 39 tools</td></tr>
+    </table>
+    <p class="muted" style="margin:12px 0 0">
+      39 tools: scene/object/collection/material/light/camera/animation tools, Cycles &amp; Workbench
+      rendering, import/export (GLB, FBX, OBJ, STL), project save/open with automatic backups,
+      file/log inspection, and an <code>execute_blender_code</code> escape hatch.
+    </p>
+  </div>
+
+  <footer>Blender MCP · Debian 12 (bookworm) · built for CranL</footer>
+</div>
+<script>
+  const el = document.getElementById('live');
+  const mcp = document.getElementById('mcp');
+  mcp.textContent = location.origin + '/mcp';
+  document.getElementById('snippet').textContent = JSON.stringify({
+    mcpServers: {
+      blender: {
+        type: 'http',
+        url: location.origin + '/mcp',
+        headers: { Authorization: 'Bearer <BLENDER_MCP_TOKEN>' }
+      }
+    }
+  }, null, 2);
+  fetch('/health', { cache: 'no-store' })
+    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    .then(d => {
+      el.className = 'pill ' + (d.status === 'ok' ? 'ok' : 'bad');
+      el.textContent = d.status === 'ok' ? 'live · healthy' : 'live · degraded';
+    })
+    .catch(e => { el.className = 'pill bad'; el.textContent = 'unreachable (' + e + ')'; });
+</script>
+</body>
+</html>

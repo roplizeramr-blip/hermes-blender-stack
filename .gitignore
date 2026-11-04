@@ -1,0 +1,21 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Local secrets / env
+.env
+*.env
+!.env.example
+
+# Blender / render artifacts
+*.blend
+*.blend1
+renders/
+exports/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

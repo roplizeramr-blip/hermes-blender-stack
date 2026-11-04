@@ -1,0 +1,48 @@
+#!/command/with-contenv sh
+# Boot hook for the Hermes-Blender stack.
+#
+# Runs as PID-1 init's one-shot cont-init script (after the image's own
+# 01-hermes-setup, which seeds config.yaml/.env and syncs bundled skills).
+#
+# 1. Seeds the 10 Blender skills into $HERMES_HOME/skills/blender/.
+# 2. Registers the Blender MCP server in $HERMES_HOME/config.yaml and seeds
+#    the LLM provider/model selection.
+#
+# Everything here is idempotent: it can run on every container start.
+set -eu
+
+HERMES_HOME="${HERMES_HOME:-/opt/data}"
+SKILLS_SRC="${HERMES_BLENDER_SKILLS_DIR:-/opt/hermes-blender/skills}"
+PY="${HERMES_PYTHON:-/opt/hermes/.venv/bin/python}"
+
+echo "[hermes-blender] HERMES_HOME=${HERMES_HOME}"
+
+# --- 1. Blender skills ------------------------------------------------------
+if [ -d "$SKILLS_SRC" ]; then
+  mkdir -p "$HERMES_HOME/skills/blender"
+  for dir in "$SKILLS_SRC"/*/; do
+    [ -d "$dir" ] || continue
+    name="$(basename "$dir")"
+    target="$HERMES_HOME/skills/blender/$name"
+    if [ ! -f "$target/SKILL.md" ]; then
+      cp -r "$dir" "$target"
+      echo "[hermes-blender] seeded skill: $name"
+    fi
+  done
+  chown -R hermes:hermes "$HERMES_HOME/skills" 2>/dev/null || true
+else
+  echo "[hermes-blender] WARNING: skills source not found at $SKILLS_SRC"
+fi
+
+# --- 2. MCP server + model provider ----------------------------------------
+if [ -x "$PY" ] && [ -f /opt/hermes-blender/configure_blender.py ]; then
+  if "$PY" /opt/hermes-blender/configure_blender.py; then
+    echo "[hermes-blender] configuration applied"
+  else
+    echo "[hermes-blender] WARNING: configuration failed (continuing; fix via the WebUI)"
+  fi
+else
+  echo "[hermes-blender] WARNING: interpreter or helper missing ($PY)"
+fi
+
+exit 0
