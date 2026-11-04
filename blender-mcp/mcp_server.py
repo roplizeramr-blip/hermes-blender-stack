@@ -29,7 +29,10 @@ DATA_DIR = os.environ.get("DATA_DIR", "/data")
 BRIDGE_HOST = os.environ.get("BLENDER_BRIDGE_HOST", "127.0.0.1")
 BRIDGE_PORT = int(os.environ.get("BLENDER_BRIDGE_PORT", "9876"))
 TOKEN = os.environ.get("BLENDER_MCP_TOKEN") or None
-PORT = int(os.environ.get("PORT", "8000"))
+# NOTE: the hosting platform injects PORT=<public port> (8080) into every
+# container. The MCP server listens on the loopback interface behind nginx, so
+# it uses its own variable (MCP_PORT) instead of the platform's PORT.
+PORT = int(os.environ.get("MCP_PORT", "8000"))
 
 SUBDIRS = ["projects", "renders", "assets", "textures", "exports", "logs", "backups"]
 for _d in SUBDIRS:
