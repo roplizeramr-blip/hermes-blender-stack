@@ -33,9 +33,13 @@ jobs:
         include:
           - image: blender-mcp
             context: ./blender-mcp
+            file: ./blender-mcp/Dockerfile
             description: "Blender 4.5.15 LTS headless + MCP server (39 tools)"
           - image: hermes
-            context: ./hermes
+            # The Hermes image copies the shared skills/ folder, so its build
+            # context is the repository root.
+            context: .
+            file: ./hermes/Dockerfile
             description: "Hermes AI Agent (WebUI + MCP client + 10 Blender skills)"
     steps:
       - name: Checkout
@@ -65,7 +69,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.context }}
-          file: ${{ matrix.context }}/Dockerfile
+          file: ${{ matrix.file }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
