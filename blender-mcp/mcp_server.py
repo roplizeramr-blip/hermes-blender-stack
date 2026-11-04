@@ -1034,9 +1034,20 @@ class HealthAndMCP:
     def __init__(self, mcp_app):
         self.mcp_app = mcp_app
 
+    def _bridge_state(self):
+        """Cheap TCP probe of the Blender bridge (no Blender call)."""
+        try:
+            with socket.create_connection((BRIDGE_HOST, BRIDGE_PORT), 2):
+                return "up"
+        except OSError:
+            return "down"
+
     async def __call__(self, scope, receive, send):
         if scope["type"] == "http" and scope.get("path") == "/health":
-            body = json.dumps({"status": "ok", "service": "blender-mcp",
+            bridge = self._bridge_state()
+            body = json.dumps({"status": "ok" if bridge == "up" else "degraded",
+                               "service": "blender-mcp",
+                               "blender_bridge": bridge,
                                "token_configured": bool(TOKEN)}).encode()
             await send({"type": "http.response.start", "status": 200,
                         "headers": [(b"content-type", b"application/json"), (b"content-length", str(len(body)).encode())]})

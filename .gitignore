@@ -19,3 +19,6 @@ exports/
 Thumbs.db
 .idea/
 .vscode/
+
+# local secrets (never committed)
+.secrets.local.json
